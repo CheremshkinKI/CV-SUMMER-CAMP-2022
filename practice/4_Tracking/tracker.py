@@ -5,7 +5,7 @@ import sys
 from tqdm import tqdm
 from common.feature_distance import calc_features_similarity
 from common.common_objects import DetectedObject, validate_detected_object, Bbox
-from common.common_objects import get_bbox_center, get_dist, calc_bbox_area
+from common.common_objects import get_bbox_center, get_dist, calc_bbox_area, get_bbox_size
 from common.find_best_assignment import solve_assignment_problem
 from common.annotation import AnnotationObject, AnnotationStorage
 
@@ -133,14 +133,29 @@ class Tracker:
         return affinity_appearance * affinity_position * affinity_shape
 
     def _calc_affinity_appearance(self, track, obj):
-        raise NotImplementedError("The function _calc_affinity_appearance  is not implemented -- implement it by yourself")
+        res = calc_features_similarity(track.last().bbox,obj.bbox)
+        return res
+        #raise NotImplementedError("The function _calc_affinity_appearance  is not implemented -- implement it by yourself")
 
     def _calc_affinity_position(self, track, obj):
-        raise NotImplementedError("The function _calc_affinity_position is not implemented -- implement it by yourself")
+        center1 = get_bbox_center(track.last().bbox)
+        center2 = get_bbox_center(obj.bbox)
+        dist = get_dist(center1,center2)
+        area = calc_bbox_area(track.last().bbox) 
+        f = -0.99*(math.pow(dist,2)/area)
+        res = math.exp(f)
+        return res
+        #raise NotImplementedError("The function _calc_affinity_position is not implemented -- implement it by yourself")
 
     def _calc_affinity_shape(self, track, obj):
-        raise NotImplementedError("The function _calc_affinity_shape is not implemented -- implement it by yourself")
+        #raise NotImplementedError("The function _calc_affinity_shape is not implemented -- implement it by yourself")
+        w1,h1 = get_bbox_size(track.last().bbox)
+        w2,h2 = get_bbox_size(obj.bbox)
+        W = (w1-w2)/w1
+        H = (h1-h2)/h1
+        res = math.exp(-0.01*(W+H))
 
+        return res
     @staticmethod
     def _log_affinity_matrix(affinity_matrix):
         with np.printoptions(precision=2, suppress=True, threshold=sys.maxsize, linewidth=sys.maxsize):
